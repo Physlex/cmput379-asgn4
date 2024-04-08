@@ -23,13 +23,19 @@ typedef struct {
     parser_resource_t resources[NRES_TYPES];
 } parser_task_t;
 
-
-//==============================================================================
-// PRIVATE
-
 //==============================================================================
 // PUBLIC
 
-PUBLIC int32_t read_line();
+// Creates a dirty line that must be cleaned. Skips comments and empty lines
+PUBLIC int32_t read_line(char buffer[COMMAND_LEN], FILE *input_file)
+
+// Removes white space and other non-token characters, packages into dst
+PUBLIC int32_t clean_line(const char *src, char *dst)
+
+// Parses resources from src into formatted rsc_ptr
+PUBLIC int32_t parse_resources(const char *src, parser_resource_t *rsc_ptr);
+
+// Parses tasks from src into formatted tsk_ptr
+PUBLIC int32_t parse_tasks(const char *src, parser_task_t *tsk_ptr);
 
 #endif // INCLUDE_PARSER_H

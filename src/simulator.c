@@ -22,10 +22,10 @@
 PRIVATE simulator_config_t simulator_config;
 
 // Resources read from the input file
-PRIVATE volatile parser_resource_t simulator_resources[NRES_TYPES];
+PRIVATE parser_resource_t simulator_resources[NRES_TYPES];
 
 // Tasks read from the input file
-PRIVATE volatile parser_task_t simulator_tasks[NTASKS];
+PRIVATE parser_task_t simulator_tasks[NTASKS];
 
 // Input file for the simulator
 PRIVATE FILE *simulator_input_fptr = NULL;
@@ -65,37 +65,34 @@ PRIVATE uint32_t open_file(const char *input_filepath)
     return simulator_errorcode;
 }
 
-PRIVATE int32_t read_file_content(char buffer[TSK_LEN()])
+PRIVATE int32_t load_simulator_config_file()
 {
-    char line_buffer[TSK_LEN()];
+    char dirty_buffer[COMMAND_LEN];
+    char clean_buffer[TSK_LEN()];
     const int rsc_len = strlen("resources");
     const int tsk_len = strlen("task");
 
     // While we can continue reading lines with no error...
-    for ( int i = 0; (read_line(buffer, simulator_input_fptr) == 0); ++i )
+    for ( int i = 0; (read_line(dirty_buffer, simulator_input_fptr) == 0); ++i )
     {
-        memset(line_buffer, 0, TSK_LEN());
-        clean_line(buffer, line_buffer, TSK_LEN());
+        memset(clean_buffer, 0, TSK_LEN());
+        clean_line(dirty_buffer, clean_buffer);
 
-        if ( strncmp("resources", line_buffer, rsc_len) == 0 )
+        if ( strncmp("resources", clean_buffer, rsc_len) == 0 )
         {
             simulator_errorcode = parse_resources(
-                line_buffer, &simulator_resources[i]
+                clean_buffer, &simulator_resources[i]
             );
         }
-        else if ( strncmp("task", line_buffer, tsk_len) == 0 )
+        else if ( strncmp("task", clean_buffer, tsk_len) == 0 )
         {
             simulator_errorcode = parse_tasks(
-                line_buffer, &simulator_tasks[i]
+                clean_buffer, &simulator_tasks[i]
             );
         }
         else
         {
-            char error_msg[STD_MSG_LEN];
-            memset(&error_msg[0], 0, STD_MSG_LEN);
-
-            sprintf(&error_msg[0], "No such command %s", line_buffer);
-            error(&error_msg[0]);
+            error("Failed to parse command");
 
             simulator_errorcode = SIMULATOR_PARSE_ERROR;
         }
@@ -122,8 +119,6 @@ PRIVATE int32_t read_file_content(char buffer[TSK_LEN()])
 
 PUBLIC uint32_t init_simulator(simulator_config_t *config)
 {
-    // Set up configuration for simulator
-
     simulator_config.monitor_time = config->monitor_time;
     simulator_config.num_iters = config->num_iters;
     strncpy(
@@ -131,22 +126,16 @@ PUBLIC uint32_t init_simulator(simulator_config_t *config)
         strlen(&config->input_filepath[0])
     );
 
-
-    // Simulator file processing
-
     const char *input_filepath = &simulator_config.input_filepath[0];
 
-    if ( open_file(input_filepath) > 0)
+    if ( open_file(input_filepath) != SIMULATOR_OKAY_NERROR)
     {
         error("Simulator failed to open file");
         fclose(simulator_input_fptr);
         return simulator_errorcode;
     }
 
-    char *file_buff[TSK_LEN()];
-    memset(file_buff, 0, TSK_LEN());
-
-    if ( read_file_content(file_buff) != SIMULATOR_OKAY_NERROR )
+    if ( load_simulator_config_file() != SIMULATOR_OKAY_NERROR )
     {
         error("Simulator failed to read file content");
         fclose(simulator_input_fptr);
@@ -154,8 +143,6 @@ PUBLIC uint32_t init_simulator(simulator_config_t *config)
     }
 
     fclose(simulator_input_fptr);
-
-    // End simulator file processing
 
     return simulator_errorcode;
 }

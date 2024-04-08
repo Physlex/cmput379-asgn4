@@ -52,6 +52,8 @@ PRIVATE int32_t scan(const char *src, parser_resource_t *rsc_ptr)
             rsc_ptr->name[k] = src[(i * resource_len) + (TOKEN_LEN + k)];
         }
     }
+
+    return 0;
 }
 
 //==============================================================================
@@ -80,7 +82,7 @@ PUBLIC int32_t clean_line(const char *src, char *dst)
     for (size_t i = 0, j = 0, k = 0; i < COMMAND_LEN; ++i)
     {
         char src_char = src[i];
-        const char curr_char = to_lower(curr_char);
+        const char curr_char = to_lower(src_char);
 
         if (curr_char == ' ' || curr_char == '\t')
         {
@@ -140,7 +142,7 @@ PUBLIC int32_t parse_tasks(const char *src, parser_task_t *tsk_ptr)
     strncpy(&busy_time_str[0], tmp, TOKEN_LEN);
     tmp += TOKEN_LEN;
 
-    tsk_ptr->busytime = atoi(&busy_time_str[0]);
+    tsk_ptr->busy_time = atoi(&busy_time_str[0]);
     if (tsk_ptr->busy_time < 0)
     {
         fprintf(

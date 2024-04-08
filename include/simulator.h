@@ -22,10 +22,10 @@ typedef struct simulator_config_t {
 //==============================================================================
 // PUBLIC
 
-// Starts the simulator
+// Starts the simulator and loads config file
 PUBLIC uint32_t init_simulator(simulator_config_t *config);
 
-// Invokes the simulator based on the config of the simulator above
-PUBLIC uint32_t run_simulation();
+// Invokes the simulator to run tasks
+PUBLIC uint32_t invoke_simulator();
 
 #endif // INCLUDE_SIMULATOR_H
