@@ -65,9 +65,43 @@ PRIVATE uint32_t open_file(const char *input_filepath)
     return simulator_errorcode;
 }
 
-PRIVATE uint32_t read_file_content(char *file_buff, const size_t file_len)
+PRIVATE int32_t read_file_content(char buffer[TSK_LEN()])
 {
-    return 0;
+    char line_buffer[TSK_LEN()];
+    const int rsc_len = strlen("resources");
+    const int tsk_len = strlen("task");
+
+    // While we can continue reading lines with no error...
+    for ( int i = 0; (read_line(buffer, simulator_input_fptr) == 0); ++i )
+    {
+        memset(line_buffer, 0, TSK_LEN());
+        clean_line(buffer, line_buffer, TSK_LEN());
+
+        if ( strncmp("resources", line_buffer, rsc_len) == 0 )
+        {
+            simulator_errorcode = parse_resources(
+                line_buffer, &simulator_resources[i]
+            );
+        }
+        else if ( strncmp("task", line_buffer, tsk_len) == 0 )
+        {
+            simulator_errorcode = parse_tasks(
+                line_buffer, &simulator_tasks[i]
+            );
+        }
+        else
+        {
+            char error_msg[STD_MSG_LEN];
+            memset(&error_msg[0], 0, STD_MSG_LEN);
+
+            sprintf(&error_msg[0], "No such command %s", line_buffer);
+            error(&error_msg[0]);
+
+            simulator_errorcode = PARSER_FREAD_ERROR;
+        }
+    }
+
+    return simulator_errorcode;
 }
 
 //==============================================================================
@@ -98,23 +132,17 @@ PUBLIC uint32_t init_simulator(simulator_config_t *config)
         return simulator_errorcode;
     }
 
-    struct stat st_buff;
-    stat(input_filepath, &st_buff);
-    const size_t file_len = st_buff.st_size;
-
-    char *file_buff = (char*)malloc(file_len);
-    memset(file_buff, 0, file_len);
+    char *file_buff[TSK_LEN()];
+    memset(file_buff, 0, TSK_LEN());
     ASSERT_TRUE(file_buff);
 
-    if ( read_file_content(file_buff, file_len) > 0 )
+    if ( read_file_content(file_buff) > 0 )
     {
         error("Simulator failed io read file content");
-        free(file_buff);
         fclose(simulator_input_fptr);
         return simulator_errorcode;
     }
 
-    free(file_buff);
     fclose(simulator_input_fptr);
 
     // End simulator file processing

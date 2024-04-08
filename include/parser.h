@@ -12,16 +12,17 @@ typedef struct {
     char value[TOKEN_LEN];
 } parser_token_pair_t;
 
-// Defines a line of tasks read by the simulator from the input file
-typedef struct {
-    char task_name[STD_MSG_LEN];
-    int busytime;
-    int idleTime;
-    parser_token_pair_t task_table[NTASKS]; // name1:value1, name2:value2,...
-} parser_task_t;
-
 // Redefinition of resource type for consistency
 typedef parser_token_pair_t parser_resource_t;
+
+// Defines a line of tasks read by the simulator from the input file
+typedef struct {
+    char name[TOKEN_LEN];
+    int busy_time;
+    int idle_time;
+    parser_resource_t resources[NRES_TYPES];
+} parser_task_t;
+
 
 //==============================================================================
 // PRIVATE

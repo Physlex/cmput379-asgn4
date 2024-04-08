@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 //==============================================================================
 // UTILITY
@@ -36,11 +37,16 @@
 // Standardized length of each command token
 #define TOKEN_LEN 32
 
+#define TSK_LEN() (TOKEN_LEN << 2) + ((TOKEN_LEN << 1) * NRES_TYPES)
+
 //==============================================================================
 // ERROR CODES
 
 // Generic Error, unspecified error type
 #define GEN_ERROR 0x01
+
+// Parser reading error, of some kind
+#define PARSER_FREAD_ERROR 0x02
 
 // Test based errors, specifiec by an ascending first 4 bits
 #define TEST_LOG_OPEN_ERROR 0x10
