@@ -1,17 +1,31 @@
 #ifndef INCLUDE_UTILS_H
 #define INCLUDE_UTILS_H
 
-// C includes that every file should have automatically
+//==============================================================================
+// STANDARD INCLUDES
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+//==============================================================================
+// UTILITY
+
+#if TEST_LVL > 0
+#define ASSERT_TRUE(condition) (assert(value))
+#elif TEST_LVL == 0
+#define ASSERT_TRUE(condition) ;
+#endif
 
 // Forces a function to have internal linkage
 #define PRIVATE static
 
 // Forces a function to have external linkage (default)
 #define PUBLIC ;
+
+//==============================================================================
+// LENGTHS
 
 // Maximum number of bytes in a command
 #define COMMAND_LEN 100000
@@ -22,8 +36,18 @@
 // Standardized length of each command token
 #define TOKEN_LEN 32
 
+//==============================================================================
+// ERROR CODES
+
 // Generic Error, unspecified error type
 #define GEN_ERROR 0x01
+
+// Test based errors, specifiec by an ascending first 4 bits
+#define TEST_LOG_OPEN_ERROR 0x10
+#define TEST_FAILED_ERROR 0x20
+
+//==============================================================================
+// RANDOM ASSIGNMENT DEFINITIONS
 
 // Maximum number of resource types in a command
 #define NRES_TYPES 10

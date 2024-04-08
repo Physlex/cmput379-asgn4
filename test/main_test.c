@@ -14,7 +14,7 @@ int main (int argc, char **argv) {
         return TEST_LOG_OPEN_ERROR;
     }
 
-    printf("Running tests...\n\n");
+    printf("- Running tests:\n\n");
 
     if ( check_test_list() < 0 ) {
         fprintf(stderr, "One or more tests failed\n");

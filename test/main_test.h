@@ -16,17 +16,17 @@
 #include "parsing_test.h"
 
 //==============================================================================
-// GLOBAL DEFINITIONS / MACROS
+// EXTERNAL LINKAGE
 
 #define NUM_TESTS NUM_PARSING_TESTS
 
-#define TEST_LOG_OPEN_ERROR 0x02
-#define TEST_FAILED_ERROR 0x03
-
-uint8_t g_idx = 0;
-FILE *g_log_fptr = NULL;
-
 typedef uint8_t (*test_functor_t)(void);
+
+//==============================================================================
+// INTERNAL LINKAGE
+
+static uint8_t g_idx = 0;
+static FILE *g_log_fptr = NULL;
 
 //==============================================================================
 // PRIVATE
