@@ -46,7 +46,8 @@
 #define GEN_ERROR 0x01
 
 // Parser reading error, of some kind
-#define PARSER_FREAD_ERROR 0x02
+#define SIMULATOR_PARSE_ERROR 0x11
+#define SIMULATOR_OKAY_NERROR 0x12
 
 // Test based errors, specifiec by an ascending first 4 bits
 #define TEST_LOG_OPEN_ERROR 0x10

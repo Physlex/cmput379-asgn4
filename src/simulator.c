@@ -97,8 +97,21 @@ PRIVATE int32_t read_file_content(char buffer[TSK_LEN()])
             sprintf(&error_msg[0], "No such command %s", line_buffer);
             error(&error_msg[0]);
 
-            simulator_errorcode = PARSER_FREAD_ERROR;
+            simulator_errorcode = SIMULATOR_PARSE_ERROR;
         }
+    }
+
+    if (simulator_errorcode != SIMULATOR_OKAY_NERROR)
+    {
+        char error_msg[STD_MSG_LEN];
+        memset(&error_msg[0], 0, STD_MSG_LEN);
+        sprintf(
+            &error_msg[0],
+            "Failed with code %d",
+            simulator_errorcode
+        );
+
+        error(&error_msg[0]);
     }
 
     return simulator_errorcode;
@@ -110,8 +123,6 @@ PRIVATE int32_t read_file_content(char buffer[TSK_LEN()])
 PUBLIC uint32_t init_simulator(simulator_config_t *config)
 {
     // Set up configuration for simulator
-
-    ASSERT_TRUE(config);
 
     simulator_config.monitor_time = config->monitor_time;
     simulator_config.num_iters = config->num_iters;
@@ -134,11 +145,10 @@ PUBLIC uint32_t init_simulator(simulator_config_t *config)
 
     char *file_buff[TSK_LEN()];
     memset(file_buff, 0, TSK_LEN());
-    ASSERT_TRUE(file_buff);
 
-    if ( read_file_content(file_buff) > 0 )
+    if ( read_file_content(file_buff) != SIMULATOR_OKAY_NERROR )
     {
-        error("Simulator failed io read file content");
+        error("Simulator failed to read file content");
         fclose(simulator_input_fptr);
         return simulator_errorcode;
     }
@@ -146,7 +156,6 @@ PUBLIC uint32_t init_simulator(simulator_config_t *config)
     fclose(simulator_input_fptr);
 
     // End simulator file processing
-
 
     return simulator_errorcode;
 }
