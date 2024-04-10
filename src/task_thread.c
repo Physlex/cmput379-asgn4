@@ -25,11 +25,13 @@ PUBLIC int32_t push_task_thread
         return -1;
     }
 
+    const size_t top = task_stack->top;
+    task_thread_t *new_task_ptr = &task_stack->task_thread_buffer[top];
     memcpy
     (
-        &task_stack->task_thread_buffer[task_stack->top],
+        new_task_ptr,
         new_task_thread,
-        sizeof(task_stack_t)
+        sizeof(task_thread_t)
     );
 
     (++task_stack->top);
@@ -49,10 +51,11 @@ PUBLIC int32_t pop_task_thread
         return -1;
     }
 
-    const uint8_t top = task_stack->top;
+    const uint8_t top = task_stack->top - 1;
     task_thread_t *old_task = &task_stack->task_thread_buffer[top];
-    memcpy(return_task, old_task, sizeof(task_stack_t));
+    memcpy(return_task, old_task, sizeof(task_thread_t));
 
+    memset(old_task, 0, sizeof(task_thread_t));
     (--task_stack->top);
 
     return 0;

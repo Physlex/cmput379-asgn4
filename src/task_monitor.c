@@ -173,10 +173,21 @@ PUBLIC int32_t dispatch_task_thread(void)
         return -1;
     }
 
-    if ( task_thread_create(&task, task_routine_thread) < 0 )
+    const size_t top = running_tasks.top - 1;
+    const int32_t error = task_thread_create
+    (
+        &running_tasks.task_thread_buffer[top],
+        task_routine_thread
+    );
+
+    if ( error < 0 )
     {
         fprintf(stderr, "Failed to create running thread\n");
         return -1;
+    }
+    else
+    {
+        printf("Dispatched task %s\n\n", &task.task->name[0]);
     }
 
     return 0;
@@ -187,7 +198,6 @@ PUBLIC int32_t wall_tasks()
     for (int i = 0; i < NTASKS; ++i)
     {
         task_thread_t running_task_ptr;
-        memset(&running_task_ptr, 0, sizeof(running_task_ptr));
 
         if ( pop_task_thread(&running_task_ptr, &running_tasks) < 0 )
         {
@@ -195,10 +205,28 @@ PUBLIC int32_t wall_tasks()
             return -1;
         }
 
-        if ( task_thread_join(&running_task_ptr) < 0 )
+        if ( push_task_thread(&running_task_ptr, &waiting_tasks) )
+        {
+            fprintf(stderr, "Failed to push task thread into waiting stack\n");
+            return -1;
+        }
+
+        const size_t top = waiting_tasks.top - 1;
+        if ( task_thread_join(&waiting_tasks.task_thread_buffer[top]) < 0 )
         {
             fprintf(stderr, "Failed to join with task thread\n");
             return -1;
+        }
+        else
+        {
+            task_thread_t *task_buffer = &waiting_tasks.task_thread_buffer[0];
+            parser_task_t *ll_task_ptr = task_buffer[top].task;
+
+            printf
+            (
+                "Successfully joined with task thread %s\n",
+                &ll_task_ptr->name[0]
+            );
         }
     }
 
