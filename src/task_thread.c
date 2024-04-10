@@ -76,16 +76,6 @@ PUBLIC int32_t task_thread_create
     void *(*routine)(void*)
 )
 {
-    if ( pthread_create(&waiting_task->task_thread, NULL, routine, waiting_task) < 0 )
-    {
-        fprintf
-        (
-            stderr,
-            "%s: Failed to create pthread for task\n",
-            strerror(errno)
-        );
-        return -1;
-    }
 
     return 0;
 }

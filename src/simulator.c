@@ -145,64 +145,64 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
 
     fclose(simulator_input_fptr);
 
-    // TEST BLOCK START
+    // // TEST BLOCK START
 
-    printf("Found resources:\n");
-    for (int i = 0; i < NRES_TYPES; ++i)
-    {
-        if (strlen(&simulator_resources[i].name[0]) == 0)
-        {
-            break; // No more resources from here
-        }
+    // printf("Found resources:\n");
+    // for (int i = 0; i < NRES_TYPES; ++i)
+    // {
+    //     if (strlen(&simulator_resources[i].name[0]) == 0)
+    //     {
+    //         break; // No more resources from here
+    //     }
 
-        printf
-        (
-            "\t- {%s:%s}\n",
-            &simulator_resources[i].name[0],
-            &simulator_resources[i].value[0]
-        );
-    }
+    //     printf
+    //     (
+    //         "\t- {%s:%s}\n",
+    //         &simulator_resources[i].name[0],
+    //         &simulator_resources[i].value[0]
+    //     );
+    // }
 
-    printf("\nFound tasks:\n");
-    for (int i = 0; i < NTASKS; ++i)
-    {
-        if (strlen(&simulator_tasks[i].name[0]) == 0)
-        {
-            break; // No further tasks allocated
-        }
+    // printf("\nFound tasks:\n");
+    // for (int i = 0; i < NTASKS; ++i)
+    // {
+    //     if (strlen(&simulator_tasks[i].name[0]) == 0)
+    //     {
+    //         break; // No further tasks allocated
+    //     }
 
-        printf
-        (
-            "\t - Task %s: {",
-            &simulator_tasks[i].name[0]
-        );
+    //     printf
+    //     (
+    //         "\t - Task %s: {",
+    //         &simulator_tasks[i].name[0]
+    //     );
 
-        for (int j = 0; j < NRES_TYPES; ++j)
-        {
-            if ( strlen(&simulator_tasks[i].resources[j].name[0]) == 0 )
-            {
-                break; // No further resources
-            }
+    //     for (int j = 0; j < NRES_TYPES; ++j)
+    //     {
+    //         if ( strlen(&simulator_tasks[i].resources[j].name[0]) == 0 )
+    //         {
+    //             break; // No further resources
+    //         }
 
-            printf
-            (
-                "%s:%s",
-                &simulator_tasks[i].resources[j].name[0],
-                &simulator_tasks[i].resources[j].value[0]
-            );
+    //         printf
+    //         (
+    //             "%s:%s",
+    //             &simulator_tasks[i].resources[j].name[0],
+    //             &simulator_tasks[i].resources[j].value[0]
+    //         );
 
-            if ( (j + 1) % NRES_TYPES )
-            {
-                printf(", ");
-            }
-        }
+    //         if ( (j + 1) % NRES_TYPES )
+    //         {
+    //             printf(", ");
+    //         }
+    //     }
 
-        printf("}\n");
-    }
+    //     printf("}\n");
+    // }
 
-    printf("\n");
+    // printf("\n");
 
-    // TEST BLOCK END
+    // // TEST BLOCK END
 
     return simulator_errorcode;
 }
@@ -257,7 +257,7 @@ PUBLIC int32_t invoke_simulator()
     }
     else
     {
-        printf("Joined all threads to main\n");
+        printf("\nJoined all threads to main\n\n");
     }
 
     printf("\n");
