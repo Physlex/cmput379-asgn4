@@ -13,7 +13,7 @@
 //==============================================================================
 // PUBLIC
 
-PRIVATE int32_t push_task_thread
+PUBLIC int32_t push_task_thread
 (
     task_thread_t *new_task_thread,
     task_stack_t *task_stack
@@ -37,7 +37,7 @@ PRIVATE int32_t push_task_thread
     return 0;
 }
 
-PRIVATE int32_t pop_task_thread
+PUBLIC int32_t pop_task_thread
 (
     task_thread_t *return_task,
     task_stack_t *task_stack
@@ -64,13 +64,13 @@ PUBLIC int32_t initialize_task_thread
     task_stack_t *held_tasks
 )
 {
-    return push_task_thread(new_task_thread, &held_tasks);
+    return push_task_thread(new_task_thread, held_tasks);
 }
 
 PUBLIC int32_t task_thread_create
 (
     task_thread_t *waiting_task,
-    void *(*routine)(void*),
+    void *(*routine)(void*)
 )
 {
     pthread_t *task_pthread_ptr = &waiting_task->task_thread;

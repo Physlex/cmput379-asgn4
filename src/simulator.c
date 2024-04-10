@@ -8,7 +8,7 @@
 
 // INCLUDE
 #include "parser.h"
-#include "task_thread.h"
+#include "task_monitor.h"
 
 //==============================================================================
 // INTERNAL
@@ -116,14 +116,7 @@ PRIVATE int32_t load_simulator_config_file()
 
 PUBLIC int32_t init_simulator(simulator_config_t *config)
 {
-    simulator_config.monitor_time = config->monitor_time;
-    simulator_config.num_iters = config->num_iters;
-    strncpy
-    (
-        &simulator_config.input_filepath[0], &config->input_filepath[0],
-        strlen(&config->input_filepath[0])
-    );
-
+    memcpy(&simulator_config, config, sizeof(*config));
     const char *input_filepath = &simulator_config.input_filepath[0];
 
     if ( open_file(input_filepath) != SIMULATOR_OKAY_NERROR)

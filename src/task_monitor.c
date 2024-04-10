@@ -19,17 +19,17 @@
 PRIVATE task_stack_t running_tasks;
 
 // A resource buffer that holds all resources along a bin semaphore for locking
-PRIVATE task_thread_resource_lock_t locked_resources[NRES_TYPES];
+PRIVATE task_monitor_resource_lock_t locked_resources[NRES_TYPES];
 
 //==============================================================================
 // PRIVATE
 
-PUBLIC int32_t acquire(task_thread_t *task_thread)
+PRIVATE int32_t acquire(task_thread_t *task_thread)
 {
     return 0;
 }
 
-PUBLIC int32_t release(task_thread_t *task_thread)
+PRIVATE int32_t release(task_thread_t *task_thread)
 {
     return 0;
 }
@@ -66,7 +66,7 @@ PRIVATE void *task_routine_thread(void *args)
 
         printf
         (
-            "task: %s (tid= 0x%x, iter= %d, time= %d)\n",
+            "task: %s (tid= 0x%lx, iter= %ld, time= %ld)\n",
             &task_thread->task->name[0],
             pthread_self(),
             task_thread->num_iters,
@@ -86,14 +86,14 @@ PUBLIC int32_t lock_resources(parser_resource_t *resources)
     {
         strncpy
         (
-            &locked_resources[i].resource.name[0],
+            &locked_resources[i].resource->name[0],
             &resources[i].name[0],
             TOKEN_LEN
         );
 
         strncpy
         (
-            &locked_resources[i].resource.value[0],
+            &locked_resources[i].resource->value[0],
             &resources[i].value[0],
             TOKEN_LEN
         );
@@ -111,7 +111,7 @@ PUBLIC int32_t lock_resources(parser_resource_t *resources)
                 "%s, a semphore failed to be initialized",
                 strerror(errno)
             );
-            error(&error_msg[0]);
+            fprintf(stderr, "%s\n", &error_msg[0]);
 
             return -1;
         }
@@ -120,15 +120,25 @@ PUBLIC int32_t lock_resources(parser_resource_t *resources)
     return 0;
 }
 
-PUBLIC int32_t dispatch_task_thread(parser_task_t *new_task)
+PUBLIC int32_t dispatch_task_thread
+(
+    parser_task_t *task,
+    const uint64_t num_iters
+)
 {
-    if ( push_task_thread(new_task, &running_tasks) < 0 )
+    task_thread_t new_task;
+    memset(&new_task, 0, sizeof(new_task));
+    new_task.task = task;
+    new_task.state = WAIT;
+    new_task.num_iters = num_iters;
+
+    if ( push_task_thread(&new_task, &running_tasks) < 0 )
     {
         fprintf(stderr, "Failed to add task to running tasks stack\b");
         return -1;
     }
 
-    if ( task_thread_create(new_task, task_routine_thread) < 0 )
+    if ( task_thread_create(&new_task, task_routine_thread) < 0 )
     {
         fprintf(stderr, "Failed to create running thread\n");
         return -1;
@@ -141,15 +151,16 @@ PUBLIC int32_t wall_tasks()
 {    
     for (int i = 0; i < NTASKS; ++i)
     {
-        task_thread_t *running_task_ptr;
+        task_thread_t running_task_ptr;
+        memset(&running_task_ptr, 0, sizeof(running_task_ptr));
 
-        if ( pop_task_thread(running_task_ptr, &running_tasks) < 0 )
+        if ( pop_task_thread(&running_task_ptr, &running_tasks) < 0 )
         {
             fprintf(stderr, "Failed to remove waiting task thread\n");
             return -1;
         }
 
-        if ( task_thread_join(running_task_ptr, NULL) < 0 )
+        if ( task_thread_join(&running_task_ptr) < 0 )
         {
             fprintf(stderr, "Failed to join with task thread\n");
             return -1;

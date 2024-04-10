@@ -23,7 +23,7 @@
 #define PRIVATE static
 
 // Forces a function to have external linkage (default)
-#define PUBLIC ;
+#define PUBLIC
 
 #define ONE_PROCESS_FL       0
 #define BIN_LOCK_SET   1 
