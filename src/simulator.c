@@ -28,7 +28,7 @@ PRIVATE parser_task_t simulator_tasks[NTASKS];
 PRIVATE FILE *simulator_input_fptr = NULL;
 
 // Last known error within a sim-step, does not account for running the sim
-PRIVATE volatile int simulator_errorcode = 0;
+PRIVATE volatile int simulator_errorcode = SIMULATOR_OKAY_NERROR;
 
 //==============================================================================
 // EXTERNAL
@@ -50,13 +50,10 @@ PRIVATE int32_t open_file(const char *input_filepath)
         char error_msg[STD_MSG_LEN];
         memset(&error_msg[0], 0, STD_MSG_LEN);
 
-        sprintf(&error_msg[0], "File %s not found\n", input_filepath);
+        sprintf(&error_msg[0], "File %s not found", input_filepath);
         fprintf(stderr, "%s: %s\n", strerror(errno), &error_msg[0]);
 
         simulator_errorcode = SIMERR_FNFND;
-    } else
-    {
-        printf("Simulator: [File Open] %s\n", input_filepath);
     }
 
     return simulator_errorcode;
@@ -70,30 +67,35 @@ PRIVATE int32_t load_simulator_config_file()
     const int tsk_len = strlen("task");
 
     // While we can continue reading lines with no error...
-    for ( int i = 0; (read_line(dirty_buffer, simulator_input_fptr) == 0); ++i )
+
+    uint8_t parse_error = 0;
+    int i = 0;
+    while (read_line(dirty_buffer, simulator_input_fptr) == 0)
     {
         memset(clean_buffer, 0, TSK_LEN());
         clean_line(dirty_buffer, clean_buffer);
 
         if ( strncmp("resources", clean_buffer, rsc_len) == 0 )
         {
-            simulator_errorcode = parse_resources(
-                clean_buffer, &simulator_resources[i]
+            parse_error = parse_resources(
+                clean_buffer, &simulator_resources[0]
             );
         }
         else if ( strncmp("task", clean_buffer, tsk_len) == 0 )
         {
-            simulator_errorcode = parse_tasks(
+            parse_error = parse_tasks(
                 clean_buffer, &simulator_tasks[i]
             );
+            ++i;
         }
         else
         {
             error("Failed to parse command");
-
             simulator_errorcode = SIMULATOR_PARSE_ERROR;
         }
     }
+
+    if (parse_error != 0) { simulator_errorcode = SIMULATOR_PARSE_ERROR; }
 
     if (simulator_errorcode != SIMULATOR_OKAY_NERROR)
     {
@@ -121,9 +123,13 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
 
     if ( open_file(input_filepath) != SIMULATOR_OKAY_NERROR)
     {
+        simulator_errorcode = SIMERR_FNFND;
         error("Simulator failed to open file");
-        fclose(simulator_input_fptr);
         return simulator_errorcode;
+    }
+    else
+    {
+        printf("Simulator opened file %s\n", input_filepath);
     }
 
     if ( load_simulator_config_file() != SIMULATOR_OKAY_NERROR )
@@ -132,8 +138,51 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
         fclose(simulator_input_fptr);
         return simulator_errorcode;
     }
+    else
+    {
+        printf("Simulator correctly parsed file content\n\n");
+    }
 
     fclose(simulator_input_fptr);
+
+    // TEST BLOCK START
+
+    printf("Printing resources...\n");
+    for (int i = 0; i < NRES_TYPES; ++i)
+    {
+        printf
+        (
+            "\t- {%s:%s}\n",
+            &simulator_resources[i].name[0],
+            &simulator_resources[i].value[0]
+        );
+    }
+
+    printf("Printing tasks...\n");
+    for (int i = 0; i < NTASKS; ++i)
+    {
+        printf
+        (
+            "\t - Task %s: {",
+            &simulator_tasks[i].name[0]
+        );
+
+        for (int j = 0; j < NRES_TYPES; ++j)
+        {
+            printf
+            (
+                "%s:%s, ",
+                &simulator_tasks[i].resources[j].name[0],
+                &simulator_tasks[i].resources[j].value[0]
+            );
+        }
+
+        printf("}\n");
+    }
+
+    printf("\n");
+
+    // TEST BLOCK END
 
     return simulator_errorcode;
 }
@@ -144,6 +193,10 @@ PUBLIC int32_t invoke_simulator()
     {
         error("Failed to lock resources");
         return -1;
+    }
+    else
+    {
+        printf("Simulator resources locked\n");
     }
 
     const size_t niters = simulator_config.num_iters;
@@ -156,10 +209,24 @@ PUBLIC int32_t invoke_simulator()
             break; // From this point on there are no tasks defined
         }
 
-        if ( dispatch_task_thread(&simulator_tasks[i], niters) < 0 )
+        if ( dispatch_task_thread(curr_task, niters) < 0 )
         {
-            error("Failed to dispatch thread");
+            char error_msg[STD_MSG_LEN + TOKEN_LEN];
+            memset(&error_msg[0], 0, sizeof(error_msg));
+
+            sprintf
+            (
+                &error_msg[0],
+                "Failed to dispatch task %s\n",
+                &curr_task->name[0]
+            );
+            error(&error_msg[0]);
+
             return -1;
+        }
+        else
+        {
+            printf("Dispatched task: %s\n", &curr_task->name[0]);
         }
     }
 
@@ -168,6 +235,12 @@ PUBLIC int32_t invoke_simulator()
         error("Failed to wall threads");
         return -1;
     }
+    else
+    {
+        printf("Joined all threads to main\n");
+    }
+
+    printf("\n");
 
     return simulator_errorcode;
 }

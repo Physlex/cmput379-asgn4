@@ -30,15 +30,15 @@ int main (int argc, char **argv)
         exit(GEN_ERROR);
     }
 
-    if ( init_simulator(&config) != 0 )
+    if ( init_simulator(&config) != SIMULATOR_OKAY_NERROR )
     {
-        fprintf(stderr, "Failed to invoke simulator\n");
+        fprintf(stderr, "Failed to initialize simulator\n");
         exit(GEN_ERROR);
     }
 
-    if ( invoke_simulator() != 0 )
+    if ( invoke_simulator() != SIMULATOR_OKAY_NERROR )
     {
-        fprintf(stderr, "Failed to run simulator\n");
+        fprintf(stderr, "Failed to invoke simulator\n");
         exit(GEN_ERROR);
     }
 

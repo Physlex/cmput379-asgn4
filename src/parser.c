@@ -36,16 +36,18 @@ PRIVATE int32_t scan(const char *src, parser_resource_t *rsc_ptr)
  
         for (int j = 0; j < TOKEN_LEN; ++j)
         {
-            rsc_ptr->name[i] = src[(i * resource_len) + j];
+            rsc_ptr[i].name[j] = src[(i * resource_len) + j];
         }
+
 
         // Read value
 
         for (int k = 0; k < TOKEN_LEN; ++k)
         {
-            rsc_ptr->name[k] = src[(i * resource_len) + (TOKEN_LEN + k)];
+            rsc_ptr[i].value[k] = src[(i * resource_len) + (TOKEN_LEN + k)];
         }
     }
+
 
     return 0;
 }
@@ -55,16 +57,18 @@ PRIVATE int32_t scan(const char *src, parser_resource_t *rsc_ptr)
 
 PUBLIC int32_t read_line(char buffer[COMMAND_LEN], FILE *input_file)
 {
-    char *err = fgets(buffer, COMMAND_LEN, input_file);
+    char *err = fgets(&buffer[0], COMMAND_LEN, input_file);
     if (err == NULL) { return 1; }
 
-    while ( (strlen(buffer) != 0) &&
+    while ( (strlen(&buffer[0]) != 0) &&
           ( (buffer[0] == ' ') || (buffer[0] == '#') || (buffer[0] == '\n') ))
     {
-        memset(buffer, 0, COMMAND_LEN);
-        err = fgets(buffer, COMMAND_LEN, input_file);
+        memset(&buffer[0], 0, COMMAND_LEN);
+        err = fgets(&buffer[0], COMMAND_LEN, input_file);
         if (err == NULL) { return 1; }
     }
+
+    buffer[strlen(&buffer[0]) - 1] = '\0';
 
     return 0;
 }
@@ -134,7 +138,6 @@ PUBLIC int32_t parse_tasks(const char *src, parser_task_t *tsk_ptr)
     char busy_time_str[TOKEN_LEN];
     memset(&busy_time_str[0], 0, TOKEN_LEN);
     strncpy(&busy_time_str[0], tmp, TOKEN_LEN);
-    tmp += TOKEN_LEN;
 
     tsk_ptr->busy_time = atoi(&busy_time_str[0]);
     if (tsk_ptr->busy_time < 0)
