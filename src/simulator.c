@@ -6,17 +6,14 @@
 #include <unistd.h>
 #include <errno.h>
 
-// LINUX
-#include <sys/stat.h>
-
 // INCLUDE
 #include "parser.h"
-
-//==============================================================================
-// EXTERNAL
+#include "task_thread.h"
 
 //==============================================================================
 // INTERNAL
+
+/* Global Variables ----------------------------------------------------------*/
 
 // Simulator conifiguration details
 PRIVATE simulator_config_t simulator_config;
@@ -35,7 +32,7 @@ PRIVATE volatile int simulator_errorcode = 0;
 
 //==============================================================================
 // EXTERNAL
- 
+
 
 //==============================================================================
 // PRIVATE
@@ -46,7 +43,7 @@ PRIVATE void error(const char *error_msg)
     return;
 }
 
-PRIVATE uint32_t open_file(const char *input_filepath)
+PRIVATE int32_t open_file(const char *input_filepath)
 {
     if ( (simulator_input_fptr = fopen(input_filepath, "r")) == NULL )
     {
@@ -117,11 +114,12 @@ PRIVATE int32_t load_simulator_config_file()
 //==============================================================================
 // PUBLIC
 
-PUBLIC uint32_t init_simulator(simulator_config_t *config)
+PUBLIC int32_t init_simulator(simulator_config_t *config)
 {
     simulator_config.monitor_time = config->monitor_time;
     simulator_config.num_iters = config->num_iters;
-    strncpy(
+    strncpy
+    (
         &simulator_config.input_filepath[0], &config->input_filepath[0],
         strlen(&config->input_filepath[0])
     );
@@ -147,10 +145,36 @@ PUBLIC uint32_t init_simulator(simulator_config_t *config)
     return simulator_errorcode;
 }
 
-PUBLIC uint32_t invoke_simulator()
+PUBLIC int32_t invoke_simulator()
 {
+    if ( lock_resources(&simulator_resources[0]) < 0 )
+    {
+        error("Failed to lock resources");
+        return -1;
+    }
 
-// TODO: Write simulator invokation code here
+    const size_t niters = simulator_config.num_iters;
+    for (int i = 0; i < NTASKS; ++i)
+    {
+        parser_task_t *curr_task = &simulator_tasks[i];
+
+        if (strlen(curr_task->name) == 0)
+        {
+            break; // From this point on there are no tasks defined
+        }
+
+        if ( dispatch_task_thread(&simulator_tasks[i], niters) < 0 )
+        {
+            error("Failed to dispatch thread");
+            return -1;
+        }
+    }
+
+    if ( wall_tasks() < 0 )
+    {
+        error("Failed to wall threads");
+        return -1;
+    }
 
     return simulator_errorcode;
 }
