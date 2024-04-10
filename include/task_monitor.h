@@ -25,7 +25,7 @@ typedef struct task_monitor_config_t {
  * @brief A resource that holds a lock, to determine it's availablity
  */
 typedef struct task_monitor_resource_lock_t {
-    parser_resource_t *resource;
+    parser_resource_t resource;
     sem_t available_resource;
 } task_monitor_resource_lock_t;
 
@@ -35,12 +35,14 @@ typedef struct task_monitor_resource_lock_t {
 // Lock system resources for use in tasks
 PUBLIC int32_t lock_resources(parser_resource_t *resources);
 
-// Dispatch a thread task
-PUBLIC int32_t dispatch_task_thread
+PUBLIC int32_t push_task
 (
     parser_task_t *new_task,
     const uint64_t num_iters
 );
+
+// Dispatch a thread task
+PUBLIC int32_t dispatch_task_thread(void);
 
 /**
  * @brief Join all dispatched tasks to the main thread

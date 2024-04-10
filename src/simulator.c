@@ -147,9 +147,14 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
 
     // TEST BLOCK START
 
-    printf("Printing resources...\n");
+    printf("Found resources:\n");
     for (int i = 0; i < NRES_TYPES; ++i)
     {
+        if (strlen(&simulator_resources[i].name[0]) == 0)
+        {
+            break; // No more resources from here
+        }
+
         printf
         (
             "\t- {%s:%s}\n",
@@ -158,9 +163,14 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
         );
     }
 
-    printf("Printing tasks...\n");
+    printf("\nFound tasks:\n");
     for (int i = 0; i < NTASKS; ++i)
     {
+        if (strlen(&simulator_tasks[i].name[0]) == 0)
+        {
+            break; // No further tasks allocated
+        }
+
         printf
         (
             "\t - Task %s: {",
@@ -169,12 +179,22 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
 
         for (int j = 0; j < NRES_TYPES; ++j)
         {
+            if ( strlen(&simulator_tasks[i].resources[j].name[0]) == 0 )
+            {
+                break; // No further resources
+            }
+
             printf
             (
-                "%s:%s, ",
+                "%s:%s",
                 &simulator_tasks[i].resources[j].name[0],
                 &simulator_tasks[i].resources[j].value[0]
             );
+
+            if ( (j + 1) % NRES_TYPES )
+            {
+                printf(", ");
+            }
         }
 
         printf("}\n");
@@ -196,20 +216,24 @@ PUBLIC int32_t invoke_simulator()
     }
     else
     {
-        printf("Simulator resources locked\n");
+        printf("Simulator resources locked\n\n");
     }
 
-    const size_t niters = simulator_config.num_iters;
+    const size_t num_iters = simulator_config.num_iters;
     for (int i = 0; i < NTASKS; ++i)
     {
-        parser_task_t *curr_task = &simulator_tasks[i];
-
-        if (strlen(curr_task->name) == 0)
+        if (strlen(simulator_tasks[i].name) == 0)
         {
             break; // From this point on there are no tasks defined
         }
 
-        if ( dispatch_task_thread(curr_task, niters) < 0 )
+        if ( push_task(&simulator_tasks[i], num_iters) < 0 )
+        {
+            error("Task failed to be added to stack\n");
+            return -1;
+        }
+
+        if ( dispatch_task_thread() < 0 )
         {
             char error_msg[STD_MSG_LEN + TOKEN_LEN];
             memset(&error_msg[0], 0, sizeof(error_msg));
@@ -218,15 +242,11 @@ PUBLIC int32_t invoke_simulator()
             (
                 &error_msg[0],
                 "Failed to dispatch task %s\n",
-                &curr_task->name[0]
+                &simulator_tasks[i].name[0]
             );
             error(&error_msg[0]);
 
             return -1;
-        }
-        else
-        {
-            printf("Dispatched task: %s\n", &curr_task->name[0]);
         }
     }
 

@@ -29,7 +29,7 @@ PUBLIC int32_t push_task_thread
     (
         &task_stack->task_thread_buffer[task_stack->top],
         new_task_thread,
-        sizeof(*new_task_thread)
+        sizeof(task_stack_t)
     );
 
     (++task_stack->top);
@@ -51,7 +51,7 @@ PUBLIC int32_t pop_task_thread
 
     const uint8_t top = task_stack->top;
     task_thread_t *old_task = &task_stack->task_thread_buffer[top];
-    memcpy(return_task, old_task, sizeof(*old_task));
+    memcpy(return_task, old_task, sizeof(task_stack_t));
 
     (--task_stack->top);
 
@@ -73,8 +73,7 @@ PUBLIC int32_t task_thread_create
     void *(*routine)(void*)
 )
 {
-    pthread_t *task_pthread_ptr = &waiting_task->task_thread;
-    if ( pthread_create(task_pthread_ptr, NULL, routine, waiting_task) < 0 )
+    if ( pthread_create(&waiting_task->task_thread, NULL, routine, waiting_task) < 0 )
     {
         fprintf
         (

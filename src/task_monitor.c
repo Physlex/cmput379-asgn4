@@ -2,6 +2,9 @@
 #include "utils.h"
 #include "task_monitor.h"
 
+// C
+#include <assert.h>
+
 // UNIX
 #include <errno.h>
 #include <unistd.h>
@@ -14,6 +17,9 @@
 
 //==============================================================================
 // EXTERNAL
+
+// Holds all stacks in seperate memmory to currently running tasks
+PRIVATE task_stack_t waiting_tasks;
 
 // A stack of currently running threads
 PRIVATE task_stack_t running_tasks;
@@ -82,20 +88,19 @@ PRIVATE void *task_routine_thread(void *args)
 
 PUBLIC int32_t lock_resources(parser_resource_t *resources)
 {
+    assert(resources);
+    assert(locked_resources);
+
     for (int i = 0; i < NRES_TYPES; ++i)
     {
-        strncpy
-        (
-            &locked_resources[i].resource->name[0],
-            &resources[i].name[0],
-            TOKEN_LEN
-        );
+        parser_resource_t *new_rsc = &resources[i];
+        task_monitor_resource_lock_t *curr_locked_rsc = &locked_resources[i];
 
-        strncpy
+        memcpy
         (
-            &locked_resources[i].resource->value[0],
-            &resources[i].value[0],
-            TOKEN_LEN
+            &curr_locked_rsc->resource,
+            new_rsc,
+            sizeof(parser_resource_t)
         );
 
         sem_t *lock = &locked_resources[i].available_resource;
@@ -115,12 +120,23 @@ PUBLIC int32_t lock_resources(parser_resource_t *resources)
 
             return -1;
         }
+        else if ( strlen(&curr_locked_rsc->resource.name[0]) > 0 )
+        {
+            printf
+            (
+                "locked resource: %s:%s\n",
+                &curr_locked_rsc->resource.name[0],
+                &curr_locked_rsc->resource.value[0]
+            );
+        }
     }
+
+    printf("\n");
 
     return 0;
 }
 
-PUBLIC int32_t dispatch_task_thread
+PUBLIC int32_t push_task
 (
     parser_task_t *task,
     const uint64_t num_iters
@@ -132,13 +148,32 @@ PUBLIC int32_t dispatch_task_thread
     new_task.state = WAIT;
     new_task.num_iters = num_iters;
 
-    if ( push_task_thread(&new_task, &running_tasks) < 0 )
+    if ( push_task_thread(&new_task, &waiting_tasks) < 0 )
     {
         fprintf(stderr, "Failed to add task to running tasks stack\b");
         return -1;
     }
 
-    if ( task_thread_create(&new_task, task_routine_thread) < 0 )
+    return 0;
+}
+
+PUBLIC int32_t dispatch_task_thread(void)
+{
+    task_thread_t task;
+
+    if ( pop_task_thread(&task, &waiting_tasks) < 0 )
+    {
+        fprintf(stderr, "Failed to pop task from waiting stack\n");
+        return -1;
+    }
+
+    if ( push_task_thread(&task, &running_tasks) < 0 )
+    {
+        fprintf(stderr, "Failed to push task into running stack\n");
+        return -1;
+    }
+
+    if ( task_thread_create(&task, task_routine_thread) < 0 )
     {
         fprintf(stderr, "Failed to create running thread\n");
         return -1;
