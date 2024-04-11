@@ -39,7 +39,7 @@ PRIVATE volatile int simulator_errorcode = SIMULATOR_OKAY_NERROR;
 
 PRIVATE void error(const char *error_msg)
 {
-    fprintf(stderr, "Simulator Error [%d]: %s\n", simulator_errorcode, error_msg);
+    fprintf(stderr, "Simulator Error [0x%x]: %s\n", simulator_errorcode, error_msg);
     return;
 }
 
@@ -140,69 +140,10 @@ PUBLIC int32_t init_simulator(simulator_config_t *config)
     }
     else
     {
-        printf("Simulator correctly parsed file content\n\n");
+        printf("Simulator correctly parsed file content\n");
     }
 
     fclose(simulator_input_fptr);
-
-    // // TEST BLOCK START
-
-    // printf("Found resources:\n");
-    // for (int i = 0; i < NRES_TYPES; ++i)
-    // {
-    //     if (strlen(&simulator_resources[i].name[0]) == 0)
-    //     {
-    //         break; // No more resources from here
-    //     }
-
-    //     printf
-    //     (
-    //         "\t- {%s:%s}\n",
-    //         &simulator_resources[i].name[0],
-    //         &simulator_resources[i].value[0]
-    //     );
-    // }
-
-    // printf("\nFound tasks:\n");
-    // for (int i = 0; i < NTASKS; ++i)
-    // {
-    //     if (strlen(&simulator_tasks[i].name[0]) == 0)
-    //     {
-    //         break; // No further tasks allocated
-    //     }
-
-    //     printf
-    //     (
-    //         "\t - Task %s: {",
-    //         &simulator_tasks[i].name[0]
-    //     );
-
-    //     for (int j = 0; j < NRES_TYPES; ++j)
-    //     {
-    //         if ( strlen(&simulator_tasks[i].resources[j].name[0]) == 0 )
-    //         {
-    //             break; // No further resources
-    //         }
-
-    //         printf
-    //         (
-    //             "%s:%s",
-    //             &simulator_tasks[i].resources[j].name[0],
-    //             &simulator_tasks[i].resources[j].value[0]
-    //         );
-
-    //         if ( (j + 1) % NRES_TYPES )
-    //         {
-    //             printf(", ");
-    //         }
-    //     }
-
-    //     printf("}\n");
-    // }
-
-    // printf("\n");
-
-    // // TEST BLOCK END
 
     return simulator_errorcode;
 }
@@ -216,7 +157,7 @@ PUBLIC int32_t invoke_simulator()
     }
     else
     {
-        printf("Simulator resources locked\n\n");
+        printf("Simulator resources locked\n");
     }
 
     const size_t num_iters = simulator_config.num_iters;
@@ -248,6 +189,16 @@ PUBLIC int32_t invoke_simulator()
 
             return -1;
         }
+    }
+
+    if ( dispatch_monitor_thread(simulator_config.monitor_time) < 0 )
+    {
+        error("Failed to dispatch monitor thread");
+        return -1;
+    }
+    else
+    {
+        printf("Monitor thread dispatched\n\n");
     }
 
     if ( wall_tasks() < 0 )

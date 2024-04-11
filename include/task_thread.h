@@ -25,7 +25,7 @@ typedef enum task_thread_state {WAIT=0, RUN, IDLE} task_thread_state_t;
  *        the task_thread module.
  */
 typedef struct task_thread_t {
-    parser_task_t *task;
+    parser_task_t task;
     pthread_t task_thread;
     task_thread_state_t state;
     int64_t num_iters;

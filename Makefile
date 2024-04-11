@@ -3,7 +3,7 @@
 CC := gcc
 PROJECT_NAME := a4p1
 
-CFLAGS := -std=c99 -Wall -Og -DTEST_LVL=0 -lpthread
+CFLAGS := -std=c99 -Wall -Og -lpthread -lc
 INCLUDES := include/
 BIN := bin/
 SRC := src/
