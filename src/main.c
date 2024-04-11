@@ -13,7 +13,7 @@ int main (int argc, char **argv)
     }
 
     simulator_config_t config;
-    strncpy(&config.input_filepath[0], argv[1], strlen(argv[1]));
+    strncpy(&config.input_filepath[0], argv[1], STD_MSG_LEN);
     config.monitor_time = atoi(argv[2]);
     if (config.monitor_time < 0)
     {

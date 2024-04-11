@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 4 Report</title>
+</head>
+<body>
+    <div class="report-stub">
+        <div class="report-header">
+            <h3>Testing and Results</h3>
+        </div>
+        <div class="report-content">
+            <p>
+                Testing was done via smoke test as functional testing is extremely difficult due to threading being non-deterministic under specific conditions. Qualitative testing was done through running the program and marking information about it in this report.
+            </p>
+            <br>
+            <p>
+                Of specific interest is how much waiting is done in my version of the program. Originally I was going to use a solution similar to the dining philosophers problem, however due to time constraints I settled on solving this using a blackboard solution. That is, any access to the resources buffer within the task_monitor will be locked. Early exiting was given to each resource, however the result was a waiting time that averaged to be greater than the required waiting time of each task. Furthermore, tasks each execute in a pseudo-serial fashion. That is, acquistion of resources tends to happen in small groups between task monitor calls due to the simulated calling.
+            </p>
+            <br>
+            <p>
+                As can be observed on running the task however, tasks do happen concurrently. They just have difficulty running indepentdly of each other. My next solution would be to give each task a set of tasks that want access to resources, and only block when at least one of those tasks is running, similar to djikstras solution to the dining philosophers problem. Unfortunately, A lack of time prevented me from doing that.
+            </p>
+        </div>
+    </div>
+    <div class="report-stub">
+        <div class="report-header">
+            <h3>Acknowledgements</h3>
+        </div>
+        <div class="report-content">
+            <p>
+                All code without comments specifying otherwise was solved using knowledge obtained by reading the books and slides assigned to us within the text. The polling trick was figured out by finding a solution to a textbook problem.
+
+                AI was never used in this project.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

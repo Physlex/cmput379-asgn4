@@ -49,17 +49,17 @@ PRIVATE int32_t state_to_ascii
     {
         case (WAIT):
         {
-            strncpy(state_buffer, "WAIT", strlen("WAIT") + 1);
+            strcpy(state_buffer, "WAIT");
             break;
         }
         case (RUN):
         {
-            strncpy(state_buffer, "RUN", strlen("RUN") + 1);
+            strcpy(state_buffer, "RUN");
             break;
         }
         case (IDLE):
         {
-            strncpy(state_buffer, "IDLE", strlen("IDLE") + 1);
+            strcpy(state_buffer, "IDLE");
             break;
         }
         default:
@@ -89,9 +89,17 @@ PRIVATE int32_t acquire(task_thread_t *my_task)
         parser_resource_t *my_rsc = &my_task->task.resources[i];
 
         const char *rcs_name = &my_rsc->name[0];
-        strncpy(&desired_rcs[i].name[0], rcs_name, strlen(rcs_name));
+        strcpy(&desired_rcs[i].name[0], rcs_name);
 
         desired_rcs[i].amnt = atoi(&my_rsc->value[0]);
+    }
+
+    // Tell everyone to bugger off
+
+    if ( sem_wait(&resource_lock) < 0 )
+    {
+        fprintf(stderr, "Failed to lock WAIT semaphore\n");
+        pthread_exit(NULL);
     }
 
     // Find resource that is occupied
@@ -99,11 +107,16 @@ PRIVATE int32_t acquire(task_thread_t *my_task)
     {
         task_monitor_resource_t *desired_ptr = &desired_rcs[j];
         task_monitor_resource_t *locked_ptr = &locked_resources[j];
-        const size_t len = strlen(&locked_ptr->name[0]);
-        if ( strncmp(&desired_ptr->name[0], &locked_ptr->name[0], len) == 0)
+        if ( strcmp(&desired_ptr->name[0], &locked_ptr->name[0]) == 0)
         {
             if (locked_ptr->amnt < desired_ptr->amnt)
             {
+                if ( sem_post(&resource_lock) < 0 )
+                {
+                    fprintf(stderr, "Failed to lock WAIT semaphore\n");
+                    pthread_exit(NULL);
+                }
+
                 return 1; // Try again later, when rcs might be free
             }
         }
@@ -114,12 +127,19 @@ PRIVATE int32_t acquire(task_thread_t *my_task)
     {
         task_monitor_resource_t *desired_ptr = &desired_rcs[j];
         task_monitor_resource_t *locked_ptr = &locked_resources[j];
-        const size_t len = strlen(&locked_ptr->name[0]);
-        if ( strncmp(&desired_ptr->name[0], &locked_ptr->name[0], len) == 0)
+        if ( strcmp(&desired_ptr->name[0], &locked_ptr->name[0]) == 0)
         {
             // Reduce resources by desired
             locked_ptr->amnt -= desired_ptr->amnt;
         }
+    }
+
+    // Un-bugger
+
+    if ( sem_post(&resource_lock) < 0 )
+    {
+        fprintf(stderr, "Failed to lock WAIT semaphore\n");
+        pthread_exit(NULL);
     }
 
     return 0;
@@ -135,7 +155,7 @@ PRIVATE int32_t release(task_thread_t *my_task)
         parser_resource_t *my_rsc = &my_task->task.resources[i];
 
         const char *rcs_name = &my_rsc->name[0];
-        strncpy(&desired_rcs[i].name[0], rcs_name, strlen(rcs_name));
+        strcpy(&desired_rcs[i].name[0], rcs_name);
 
         desired_rcs[i].amnt = atoi(&my_rsc->value[0]);
     }
@@ -144,8 +164,7 @@ PRIVATE int32_t release(task_thread_t *my_task)
     {
         task_monitor_resource_t *desired_ptr = &desired_rcs[j];
         task_monitor_resource_t *locked_ptr = &locked_resources[j];
-        const size_t len = strlen(&locked_ptr->name[0]);
-        if ( strncmp(&desired_ptr->name[0], &locked_ptr->name[0], len) == 0)
+        if ( strcmp(&desired_ptr->name[0], &locked_ptr->name[0]) == 0)
         {
             locked_ptr->amnt += desired_ptr->amnt;
         }
@@ -224,56 +243,49 @@ PRIVATE void *task_routine_thread(void *args)
     const long ticks = sysconf(_SC_CLK_TCK);
 
     for (int i = 0; i < task_thread->num_iters; ++i)
-    {
+    {   
         clock_t real_start_ms = times(NULL);
         clock_t time_waiting_start_tk = times(NULL);
-
-        // WAIT SEMAPHORE
-
-        if ( sem_wait(&resource_lock) < 0 )
-        {
-            fprintf(stderr, "Failed to lock WAIT semaphore\n");
-            pthread_exit(NULL);
-        }
-
-        if ( sem_wait(&monitor_lock) < 0 )
-        {
-            fprintf(stderr, "Failed to lock WAIT semaphore\n");
-            pthread_exit(NULL);
-        }
-
-        clock_t time_waiting_end_tk = times(NULL);
-        long time_waiting_delta = time_waiting_end_tk - time_waiting_start_tk;
-        long time_waiting_ms = time_waiting_delta / ticks * 1000;
-        long time_waiting_ms_rem = time_waiting_delta % ticks * 10;
-
-        task_thread->wait_time_ms += time_waiting_ms + time_waiting_ms_rem;
-        task_thread->state = WAIT;
 
         int retry = 1;
         while (retry == 1)
         {
+            // WAIT SEMAPHORE
+
+            if ( sem_wait(&monitor_lock) < 0 )
+            {
+                fprintf(stderr, "Failed to lock WAIT semaphore\n");
+                pthread_exit(NULL);
+            }
+
+            clock_t time_waiting_end_tk = times(NULL);
+            long time_waiting_delta = time_waiting_end_tk - time_waiting_start_tk;
+            long time_waiting_ms = time_waiting_delta / ticks * 1000;
+            long time_waiting_ms_rem = time_waiting_delta % ticks * 10;
+
+            task_thread->wait_time_ms += time_waiting_ms + time_waiting_ms_rem;
+            task_thread->state = WAIT;
+
+
             if ( (retry = acquire(task_thread)) < 0 )
             {
                 fprintf(stderr, "Failed to acquire resources\n");
                 break;
             }
 
-            wait(10);
-        }
+            // SIGNAL SEMAPHORE
 
-        // SIGNAL SEMAPHORE
+            if ( sem_post(&monitor_lock) < 0 )
+            {
+                fprintf(stderr, "Failed to lock WAIT semaphore\n");
+                pthread_exit(NULL);
+            }
 
-        if ( sem_post(&monitor_lock) < 0 )
-        {
-            fprintf(stderr, "Failed to lock WAIT semaphore\n");
-            pthread_exit(NULL);
-        }
-
-        if ( sem_post(&resource_lock) < 0 )
-        {
-            fprintf(stderr, "Failed to post WAIT semaphore\n");
-            pthread_exit(NULL);
+            if ( sem_post(&resource_lock) < 0 )
+            {
+                fprintf(stderr, "Failed to post WAIT semaphore\n");
+                pthread_exit(NULL);
+            }
         }
 
         task_thread->state = RUN;
@@ -295,10 +307,10 @@ PRIVATE void *task_routine_thread(void *args)
             pthread_exit(NULL);
         }
 
-        time_waiting_end_tk = times(NULL);
-        time_waiting_delta = time_waiting_end_tk - time_waiting_start_tk;
-        time_waiting_ms = time_waiting_delta / ticks * 1000;
-        time_waiting_ms_rem = time_waiting_delta % ticks * 10;
+        const long time_waiting_end_tk = times(NULL);
+        const long time_waiting_delta = time_waiting_end_tk - time_waiting_start_tk;
+        const long time_waiting_ms = time_waiting_delta / ticks * 1000;
+        const long time_waiting_ms_rem = time_waiting_delta % ticks * 10;
 
         task_thread->wait_time_ms += time_waiting_ms + time_waiting_ms_rem;
 
@@ -370,11 +382,10 @@ PUBLIC int32_t lock_resources(parser_resource_t *resources)
         parser_resource_t *new_rsc = &resources[i];
         task_monitor_resource_t *curr_locked_rsc = &locked_resources[i];
 
-        strncpy
+        strcpy
         (
             &curr_locked_rsc->name[0],
-            &new_rsc->name[0],
-            strlen(&new_rsc->name[0])
+            &new_rsc->name[0]
         );
 
         curr_locked_rsc->amnt = atoi(&new_rsc->value[0]);

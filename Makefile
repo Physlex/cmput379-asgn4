@@ -3,9 +3,9 @@
 CC := gcc
 PROJECT_NAME := a4p1
 
-CFLAGS := -std=c99 -Wall -Og -lpthread -lc
+CFLAGS := -std=c99 -Wall -O2 -lpthread -lc
 INCLUDES := include/
-BIN := bin/
+BIN :=  # Root folder, unfortunately. You can replace this with build/ or bin/
 SRC := src/
 TST := test/
 

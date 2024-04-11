@@ -50,8 +50,8 @@ PRIVATE int32_t open_file(const char *input_filepath)
 
     if ( (simulator_input_fptr = fopen(input_filepath, "r")) == NULL )
     {
-        char error_msg[STD_MSG_LEN];
-        memset(&error_msg[0], 0, STD_MSG_LEN);
+        char error_msg[4096 << 1];
+        memset(&error_msg[0], 0, 4096 << 1);
 
         sprintf(&error_msg[0], "File %s not found", input_filepath);
         fprintf(stderr, "%s: %s\n", strerror(errno), &error_msg[0]);
@@ -179,7 +179,7 @@ PUBLIC int32_t invoke_simulator()
 
         if ( dispatch_task_thread() < 0 )
         {
-            char error_msg[STD_MSG_LEN + TOKEN_LEN];
+            char error_msg[(STD_MSG_LEN + TOKEN_LEN) << 7];
             memset(&error_msg[0], 0, sizeof(error_msg));
 
             sprintf

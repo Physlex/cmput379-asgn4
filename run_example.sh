@@ -2,4 +2,4 @@
 
 make a4p1
 
-./bin/a4p1 inputFile.txt 1000 20
+./a4p1 inputFile.txt 5000 20

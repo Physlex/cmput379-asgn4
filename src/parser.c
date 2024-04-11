@@ -130,14 +130,14 @@ PUBLIC int32_t parse_tasks(const char *src, parser_task_t *tsk_ptr)
 
     // Copy task name
 
-    strncpy(tsk_ptr->name, tmp, TOKEN_LEN);
+    strcpy(tsk_ptr->name, tmp);
     tmp += TOKEN_LEN;
 
     // Copy busyTime of task
 
     char busy_time_str[TOKEN_LEN];
     memset(&busy_time_str[0], 0, TOKEN_LEN);
-    strncpy(&busy_time_str[0], tmp, TOKEN_LEN);
+    strcpy(&busy_time_str[0], tmp);
 
     tsk_ptr->busy_time = atoi(&busy_time_str[0]);
     if (tsk_ptr->busy_time < 0)
@@ -157,7 +157,7 @@ PUBLIC int32_t parse_tasks(const char *src, parser_task_t *tsk_ptr)
 
     char idle_time_str[TOKEN_LEN];
     memset(&idle_time_str[0], 0, TOKEN_LEN);
-    strncpy(&idle_time_str[0], tmp, TOKEN_LEN);
+    strcpy(&idle_time_str[0], tmp);
 
     tsk_ptr->idle_time = atoi(&idle_time_str[0]);
     if (tsk_ptr->idle_time < 0)
