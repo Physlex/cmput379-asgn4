@@ -29,6 +29,7 @@ typedef struct task_thread_t {
     pthread_t task_thread;
     task_thread_state_t state;
     int64_t num_iters;
+    int64_t wait_time_ms;
 } task_thread_t;
 
 typedef struct task_stack_t {

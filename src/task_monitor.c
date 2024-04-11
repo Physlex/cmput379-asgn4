@@ -33,14 +33,49 @@ PRIVATE task_monitor_resource_t locked_resources[NRES_TYPES];
 PRIVATE pthread_t monitor_thread;
 PRIVATE sem_t resource_lock;
 PRIVATE sem_t monitor_lock;
-PRIVATE size_t task_monitor_delay_ms;
+
+PRIVATE size_t task_monitor_delay_ms = 0;
 
 //==============================================================================
 // PRIVATE
 
+PRIVATE int32_t state_to_ascii
+(
+    char *state_buffer,
+    const task_thread_state_t *state
+)
+{
+    switch (*state)
+    {
+        case (WAIT):
+        {
+            strncpy(state_buffer, "WAIT", strlen("WAIT") + 1);
+            break;
+        }
+        case (RUN):
+        {
+            strncpy(state_buffer, "RUN", strlen("RUN") + 1);
+            break;
+        }
+        case (IDLE):
+        {
+            strncpy(state_buffer, "IDLE", strlen("IDLE") + 1);
+            break;
+        }
+        default:
+        {
+            fprintf(stderr, "Catastophic switch failure! Invalid state\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 PRIVATE int32_t wait(const uint32_t idle_time_ms)
 {
     poll(NULL, 0, idle_time_ms); // Total hack, but F it. Honestly.
+
     return 0;
 }
 
@@ -128,6 +163,7 @@ PRIVATE void *monitor_tasks(void *args)
         pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
         // WAIT SEMAPHORE
+    
         if ( sem_wait(&monitor_lock) < 0 )
         {
             fprintf(stderr, "Failed to lock MONITOR semaphore\n");
@@ -185,10 +221,12 @@ PRIVATE void *task_routine_thread(void *args)
     assert(args);
 
     task_thread_t *task_thread = (task_thread_t *)args;
+    const long ticks = sysconf(_SC_CLK_TCK);
 
     for (int i = 0; i < task_thread->num_iters; ++i)
     {
         clock_t real_start_ms = times(NULL);
+        clock_t time_waiting_start_tk = times(NULL);
 
         // WAIT SEMAPHORE
 
@@ -204,6 +242,12 @@ PRIVATE void *task_routine_thread(void *args)
             pthread_exit(NULL);
         }
 
+        clock_t time_waiting_end_tk = times(NULL);
+        long time_waiting_delta = time_waiting_end_tk - time_waiting_start_tk;
+        long time_waiting_ms = time_waiting_delta / ticks * 1000;
+        long time_waiting_ms_rem = time_waiting_delta % ticks * 10;
+
+        task_thread->wait_time_ms += time_waiting_ms + time_waiting_ms_rem;
         task_thread->state = WAIT;
 
         int retry = 1;
@@ -237,6 +281,8 @@ PRIVATE void *task_routine_thread(void *args)
 
         // WAIT SEMAPHORE
 
+        time_waiting_start_tk = times(NULL);
+
         if ( sem_wait(&resource_lock) < 0 )
         {
             fprintf(stderr, "Failed to lock IDLE semaphore\n");
@@ -248,6 +294,13 @@ PRIVATE void *task_routine_thread(void *args)
             fprintf(stderr, "Failed to lock WAIT semaphore\n");
             pthread_exit(NULL);
         }
+
+        time_waiting_end_tk = times(NULL);
+        time_waiting_delta = time_waiting_end_tk - time_waiting_start_tk;
+        time_waiting_ms = time_waiting_delta / ticks * 1000;
+        time_waiting_ms_rem = time_waiting_delta % ticks * 10;
+
+        task_thread->wait_time_ms += time_waiting_ms + time_waiting_ms_rem;
 
         if ( (retry = release(task_thread)) < 0 )
         {
@@ -273,8 +326,6 @@ PRIVATE void *task_routine_thread(void *args)
         }
 
         clock_t real_end_ms = times(NULL);
-
-        long ticks = sysconf(_SC_CLK_TCK);
 
         long real_delta_base_ms = (real_end_ms - real_start_ms) / ticks * 1000;
         long real_delta_rem_ms = ((real_end_ms - real_start_ms) % ticks) * 10;
@@ -451,6 +502,104 @@ PUBLIC int32_t wall_tasks()
     {
         fprintf(stderr, "Monitor thread failed to join\n");
         return  -1;
+    }
+
+    return 0;
+}
+
+PUBLIC int32_t display_task_information(parser_resource_t *resources_config)
+{
+    printf("System Resources:\n");
+    for (int i = 0; i < NRES_TYPES; ++i)
+    {
+        const int32_t max_resources = atoi(&resources_config[i].value[0]);
+        const int32_t returned_amnt =  max_resources - locked_resources[i].amnt;
+
+        if (strlen(&locked_resources[i].name[0]) == 0)
+        {
+            break; // Empty resources from here on
+        }
+        else
+        {
+            printf
+            (
+                "%s: (maxAvail=\t%s, held=\t%d)\n",
+                &resources_config[i].name[0],
+                &resources_config[i].value[0],
+                returned_amnt
+            );
+        }
+    }
+
+    printf("\nSystem Tasks:\n");
+    for (int i = 0; i < NTASKS; ++i)
+    {
+        const int32_t max_resources = atoi(&resources_config[i].value[0]);
+        const int32_t returned_amnt =  max_resources - locked_resources[i].amnt;
+
+        task_thread_t dying_task;
+        memset(&dying_task, 0, sizeof(task_thread_t));
+
+        if (running_tasks.top == 0)
+        {
+            break; // Empty now
+        }
+
+        if ( pop_task_thread(&dying_task, &running_tasks) < 0 )
+        {
+            fprintf(stderr, "Task %s failed death\n", &dying_task.task.name[0]);
+            return -1;
+        }
+
+        char state[TOKEN_LEN];
+        memset(&state[0], 0, TOKEN_LEN);
+
+        if ( state_to_ascii(&state[0], &dying_task.state) < 0 )
+        {
+            fprintf
+            (
+                stderr,
+                "Failed to recognize task %s state\n",
+                &dying_task.task.name[0]
+            );
+
+            return -1;
+        }
+
+        printf
+        (
+            "[%d] %s (%s, runTime= %d msec, idleTime= %d msec):\n",
+            i, &dying_task.task.name[0], &state[0],
+            dying_task.task.busy_time,
+            dying_task.task.idle_time
+        );
+
+        printf("\t(tid= 0x%lx)\n", dying_task.task_thread);
+
+        for (int i = 0; i < NRES_TYPES; ++i)
+        {
+            parser_resource_t *desired_rsc = &dying_task.task.resources[i];
+
+            if (strlen(&desired_rsc->name[0]) == 0)
+            {
+                break; // No more desired resources from here
+            }
+
+            printf
+            (
+                "\t%s: (needed=\t%s, held=\t%d)\n",
+                &desired_rsc->name[0],
+                &desired_rsc->value[0],
+                returned_amnt // Used a blackboard model, so this is arb.
+            );
+        }
+
+        printf
+        (
+            "\t(RUN: %ld times, WAIT: %ld msec)\n",
+            dying_task.num_iters,
+            dying_task.wait_time_ms
+        );
     }
 
     return 0;

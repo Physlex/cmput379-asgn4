@@ -42,5 +42,11 @@ int main (int argc, char **argv)
         exit(GEN_ERROR);
     }
 
+    if ( kill_simulator() != SIMULATOR_OKAY_NERROR )
+    {
+        fprintf(stderr, "Failed to decimate simulator\n");
+        exit(GEN_ERROR);
+    }
+
     return 0;
 }

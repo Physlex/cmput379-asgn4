@@ -28,4 +28,7 @@ PUBLIC int32_t init_simulator(simulator_config_t *config);
 // Invokes the simulator to run tasks
 PUBLIC int32_t invoke_simulator();
 
+// Kills the simulator and prints all system information to the terminal
+PUBLIC int32_t kill_simulator();
+
 #endif // INCLUDE_SIMULATOR_H

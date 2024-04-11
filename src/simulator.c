@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+// LINUX
+#include <sys/times.h>
+
 // INCLUDE
 #include "parser.h"
 #include "task_monitor.h"
@@ -30,9 +33,7 @@ PRIVATE FILE *simulator_input_fptr = NULL;
 // Last known error within a sim-step, does not account for running the sim
 PRIVATE volatile int simulator_errorcode = SIMULATOR_OKAY_NERROR;
 
-//==============================================================================
-// EXTERNAL
-
+PRIVATE long time_since_start_tk = 0;
 
 //==============================================================================
 // PRIVATE
@@ -45,6 +46,8 @@ PRIVATE void error(const char *error_msg)
 
 PRIVATE int32_t open_file(const char *input_filepath)
 {
+    time_since_start_tk = times(NULL);
+
     if ( (simulator_input_fptr = fopen(input_filepath, "r")) == NULL )
     {
         char error_msg[STD_MSG_LEN];
@@ -212,6 +215,27 @@ PUBLIC int32_t invoke_simulator()
     }
 
     printf("\n");
+
+    return simulator_errorcode;
+}
+
+PUBLIC int32_t kill_simulator()
+{
+    if ( display_task_information(&simulator_resources[0]) < 0 )
+    {
+        simulator_errorcode =  SIMERR_BASE;
+        fprintf(stderr, "Failed to print task information\n");
+        return simulator_errorcode;
+    }
+
+    const long time_end_tk = times(NULL);
+
+    const long time_delta_tk = time_end_tk - time_since_start_tk;
+    const long time_delta_ms = time_delta_tk / sysconf(_SC_CLK_TCK) * 1000;
+    const long time_delta_rem_ms = time_delta_tk % sysconf(_SC_CLK_TCK) * 10;
+    const long program_runtime_ms = time_delta_ms + time_delta_rem_ms;
+
+    printf("\nRunning time= %ld msec\n", program_runtime_ms);
 
     return simulator_errorcode;
 }

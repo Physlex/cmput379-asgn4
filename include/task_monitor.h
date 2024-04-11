@@ -47,10 +47,20 @@ PUBLIC int32_t push_task
     const uint64_t num_iters
 );
 
+/**
+ * @brief Creates a monitor task thread to output task state every delay_ms
+ */
 PUBLIC int32_t dispatch_monitor_thread(const size_t delay_ms);
 
-// Dispatch a thread task
+/**
+ * @brief Creates a task thread from loaded thread through @ref push_task
+ */
 PUBLIC int32_t dispatch_task_thread(void);
+
+/**
+ * @brief Task cleanup. Prints all system information as specified in the SRS.
+ */
+PUBLIC int32_t display_task_information(parser_resource_t *resources_config);
 
 /**
  * @brief Join all dispatched tasks to the main thread
