@@ -17,6 +17,11 @@ To clean up simply run:
 $ make clean
 ```
 
+As a fun bonus, this code should be able to run with optimization of O2, in this case, run:
+``` BASH
+$ make optimal
+```
+
 ### NOTES
 
 The header files for all c files are in the "include" folder. I was able to accomplish this recently since I have learned more about makefiles due to my upcoming internship in embedded systems requiring me to learn scripting memory and working directly with gcc.
